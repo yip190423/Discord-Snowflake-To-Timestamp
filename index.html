@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Discord Snowflake To Timestamp</title>
+    <style>
+        td:nth-child(2) {
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <table>
+            <tr>
+                <td>Snowflake:</td>
+                <td><input type="number" id="snowflake" placeholder="snowflake" onchange="convert(this.value);"
+                        onkeypress="convert(this.value);" onpaste="convert(this.value);"
+                        oninput="convert(this.value);" /></td>
+            </tr>
+            <tr>
+                <td>Timestamp:</td>
+                <td id="timestamp"></td>
+            </tr>
+
+            <tr>
+                <td>ISO 8601:</td>
+                <td id="iso8601"></td>
+            </tr>
+            <tr>
+                <td>Local Datetime:</td>
+                <td id="localDatetime"></td>
+            </tr>
+            <tr>
+                <td>Relative Time:</td>
+                <td id="relativeSecond"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="relativeMinute"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="relativeHour"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="relativeDay"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="relativeMonth"></td>
+            </tr>
+            <tr>
+                <td></td>
+                <td id="relativeYear"></td>
+            </tr>
+        </table>
+    </div>
+    <script>
+        let timestamp;
+        let relativeTime = [
+            {
+                unit: 'second',
+                element: document.querySelector('td[id="relativeSecond"]'),
+                time: () => Math.floor((now - timestamp) / 1000)
+            },
+            {
+                unit: 'minute',
+                element: document.querySelector('td[id="relativeMinute"]'),
+                time: () => Math.floor((now - timestamp) / 1000 / 60)
+            },
+            {
+                unit: 'hour',
+                element: document.querySelector('td[id="relativeHour"]'),
+                time: () => Math.floor((now - timestamp) / 1000 / 60 / 60)
+            },
+            {
+                unit: 'day',
+                element: document.querySelector('td[id="relativeDay"]'),
+                time: () => Math.floor((now - timestamp) / 1000 / 60 / 60 / 24)
+            },
+            {
+                unit: 'month',
+                element: document.querySelector('td[id="relativeMonth"]'),
+                time: () => Math.floor((now - timestamp) / 1000 / 60 / 60 / 24 / 30)
+            },
+            {
+                unit: 'year',
+                element: document.querySelector('td[id="relativeYear"]'),
+                time: () => Math.floor((now - timestamp) / 1000 / 60 / 60 / 24 / 30 / 12)
+            },
+        ];
+        let now;
+        let startTime;
+        function realtimeUpdate(elapsed) {
+            frame = requestAnimationFrame(realtimeUpdate);
+            if (!timestamp) {
+                cancelAnimationFrame(frame);
+                return;
+            }
+            if (startTime === undefined) {
+                startTime = elapsed;
+            }
+            if (elapsed - startTime > 1000 || startTime === undefined) {
+                startTime = elapsed;
+                now = Date.now();
+                for (let i = 0; i < relativeTime.length; i++) {
+                    for (let j = i; j >= 0; j--) {
+                        if (j === i) {
+                            relativeTime[i].element.innerText = `${relativeTime[i].time()} ${relativeTime[i].time() > 1 ? relativeTime[i].unit + 's' : relativeTime[i].unit}`;
+                        } else {
+                            relativeTime[i].element.innerText += ` ${relativeTime[j].time() % 60} ${relativeTime[j].time() % 60 > 1 ? relativeTime[j].unit + 's' : relativeTime[j].unit}`;
+                        }
+                    }
+                    relativeTime[i].element.innerText += ' ago';
+                }
+            }
+        }
+
+        function snowflakeToTimestamp(snowflake) {
+            snowflake = +snowflake; // convert to number
+            snowflake = snowflake.toString(2); // convert to binary
+            snowflake = `${snowflake.padStart(64, '0')}`; // fill with leading zero
+            snowflake = snowflake.slice(0, 42); // get first 42 digits
+            snowflake = parseInt(snowflake, 2); // convert to decimal
+            snowflake += 1420070400000; // Discord epoch in timestamp
+            return snowflake;
+        }
+        function convert(snowflake) {
+            if (+snowflake < 4194303) {
+                document.querySelector('td[id="timestamp"]').innerText = '';
+                document.querySelector('td[id="iso8601"]').innerText = '';
+                document.querySelector('td[id="localDatetime"]').innerText = '';
+                for (let i = 0; i < relativeTime.length; i++) {
+                    relativeTime[i].element.innerText = '';
+                }
+                timestamp = null;
+                return;
+            }
+            timestamp = snowflakeToTimestamp(snowflake);
+            document.querySelector('td[id="timestamp"]').innerText = timestamp;
+            document.querySelector('td[id="iso8601"]').innerText = new Date(timestamp).toISOString();
+            document.querySelector('td[id="localDatetime"]').innerText = new Date(timestamp);
+            startTime = undefined;
+            realtimeUpdate();
+        }
+    </script>
+</body>
+
+</html>
